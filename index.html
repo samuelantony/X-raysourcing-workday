@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>X-Ray Sourcer · Workday Talent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0f12;
+    --bg2:#10161b;
+    --panel:#141c22;
+    --panel2:#192329;
+    --line:#26333c;
+    --line2:#33454f;
+    --ink:#e7f0ee;
+    --dim:#8aa0a0;
+    --dimmer:#5d7274;
+    --phos:#5eead4;       /* scanner teal */
+    --phos-dim:#2f8a7e;
+    --amber:#f5c451;      /* nice-to-have */
+    --amber-dim:#8a6f2a;
+    --red:#f87171;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --sans:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans);
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(94,234,212,.06), transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, rgba(245,196,81,.04), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    line-height:1.5;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* faint scanline texture for the "x-ray" feel */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px);
+    mix-blend-mode:overlay;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px;position:relative;z-index:1}
+
+  /* ---------- header ---------- */
+  header{padding:34px 0 22px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .logo{
+    width:42px;height:42px;border:1.5px solid var(--phos);border-radius:9px;
+    display:grid;place-items:center;color:var(--phos);font-family:var(--mono);
+    font-weight:700;font-size:20px;box-shadow:0 0 22px rgba(94,234,212,.25) inset, 0 0 12px rgba(94,234,212,.15);
+    position:relative;overflow:hidden;
+  }
+  .logo::after{content:"";position:absolute;left:0;right:0;height:2px;background:var(--phos);
+    opacity:.7;box-shadow:0 0 8px var(--phos);animation:scan 2.6s ease-in-out infinite}
+  @keyframes scan{0%{top:6%}50%{top:88%}100%{top:6%}}
+  h1{font-family:var(--mono);font-size:21px;font-weight:700;letter-spacing:-.4px}
+  h1 b{color:var(--phos)}
+  .tag{font-family:var(--mono);font-size:11.5px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px}
+  .lede{color:var(--dim);max-width:760px;margin-top:16px;font-size:14.5px}
+  .lede code{font-family:var(--mono);color:var(--phos);background:rgba(94,234,212,.08);padding:1px 6px;border-radius:5px;font-size:12.5px}
+
+  /* ---------- job tabs ---------- */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:26px 0 0}
+  .tab{
+    flex:1;min-width:230px;text-align:left;cursor:pointer;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;transition:.18s;position:relative;
+  }
+  .tab:hover{border-color:var(--line2);transform:translateY(-2px)}
+  .tab.on{border-color:var(--phos);background:linear-gradient(180deg,rgba(94,234,212,.07),var(--panel))}
+  .tab .n{font-family:var(--mono);font-size:11px;color:var(--dimmer)}
+  .tab.on .n{color:var(--phos)}
+  .tab .t{font-weight:600;font-size:14.5px;margin:4px 0 6px;line-height:1.3}
+  .tab .geo{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.5px}
+
+  /* ---------- layout ---------- */
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:18px;margin:22px 0 60px;align-items:start}
+  @media(max-width:920px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 20px}
+  .card h2{font-family:var(--mono);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);
+    display:flex;align-items:center;gap:8px;margin-bottom:14px}
+  .card h2 .num{color:var(--phos)}
+  .sub{font-size:12.5px;color:var(--dimmer);margin:-8px 0 14px}
+
+  /* lane label */
+  .lane{margin-bottom:18px}
+  .lane-h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
+  .lane-h .lbl{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.5px}
+  .lane-h .hint{font-size:11px;color:var(--dimmer)}
+  .must .lbl{color:var(--phos)}
+  .any .lbl{color:var(--ink)}
+  .title .lbl{color:var(--amber)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{
+    font-family:var(--mono);font-size:12px;cursor:pointer;user-select:none;
+    border:1px solid var(--line2);background:var(--panel2);color:var(--dim);
+    padding:5px 10px;border-radius:7px;transition:.13s;line-height:1.2;
+  }
+  .chip:hover{border-color:var(--dim);color:var(--ink)}
+  .chip.on{background:rgba(94,234,212,.12);border-color:var(--phos);color:var(--phos)}
+  .title .chip.on{background:rgba(245,196,81,.12);border-color:var(--amber);color:var(--amber)}
+  .chip .x{opacity:.55;margin-left:5px}
+
+  .addrow{display:flex;gap:7px;margin-top:9px}
+  .addrow input{
+    flex:1;font-family:var(--mono);font-size:12px;background:var(--bg2);border:1px solid var(--line);
+    color:var(--ink);padding:7px 10px;border-radius:7px;outline:none;
+  }
+  .addrow input:focus{border-color:var(--phos-dim)}
+  .addrow button{
+    font-family:var(--mono);font-size:12px;background:transparent;border:1px solid var(--line2);
+    color:var(--dim);padding:7px 12px;border-radius:7px;cursor:pointer;transition:.13s;
+  }
+  .addrow button:hover{border-color:var(--phos);color:var(--phos)}
+
+  /* region accordion */
+  .region-grp{border:1px solid var(--line);border-radius:9px;margin-bottom:8px;overflow:hidden;background:var(--panel2)}
+  .region-head{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer}
+  .region-head:hover{background:var(--bg2)}
+  .region-head .nm{font-family:var(--mono);font-size:12.5px;font-weight:600;flex:1}
+  .region-head .ct{font-family:var(--mono);font-size:11px;color:var(--dimmer)}
+  .region-head .caret{color:var(--dim);transition:.2s;font-size:11px}
+  .region-grp.open .caret{transform:rotate(90deg)}
+  .region-body{display:none;padding:4px 12px 12px;border-top:1px solid var(--line)}
+  .region-grp.open .region-body{display:block}
+  .toggle-all{font-family:var(--mono);font-size:10.5px;color:var(--phos);cursor:pointer;
+    border:1px solid var(--phos-dim);padding:2px 7px;border-radius:5px;background:rgba(94,234,212,.06)}
+
+  /* platform + engine pills */
+  .pillrow{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:6px}
+  .pill{
+    font-family:var(--mono);font-size:12px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;
+    border:1px solid var(--line2);background:var(--panel2);color:var(--dim);padding:6px 11px;border-radius:8px;transition:.13s;
+  }
+  .pill:hover{border-color:var(--dim);color:var(--ink)}
+  .pill.on{border-color:var(--phos);color:var(--phos);background:rgba(94,234,212,.1)}
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--dimmer)}
+  .pill.on .dot{background:var(--phos);box-shadow:0 0 7px var(--phos)}
+
+  .seg{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;width:fit-content}
+  .seg button{font-family:var(--mono);font-size:12px;background:transparent;color:var(--dim);border:none;
+    padding:7px 14px;cursor:pointer;border-right:1px solid var(--line2);transition:.13s}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--phos);color:#07110e;font-weight:600}
+
+  /* ---------- output ---------- */
+  .out{position:sticky;top:16px}
+  .query{
+    font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--ink);
+    background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px;
+    white-space:pre-wrap;word-break:break-word;max-height:230px;overflow:auto;min-height:80px;
+  }
+  .query .op{color:var(--phos)}
+  .query .ti{color:var(--amber)}
+  .query .ex{color:var(--red)}
+  .query .ph{color:var(--dimmer)}
+  .meta{display:flex;gap:14px;margin:11px 0 14px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .meta b{color:var(--phos);font-weight:600}
+
+  .btns{display:flex;flex-direction:column;gap:8px}
+  .run{
+    font-family:var(--mono);font-size:13.5px;font-weight:600;cursor:pointer;text-align:center;
+    background:var(--phos);color:#07110e;border:none;padding:13px;border-radius:10px;transition:.15s;
+    text-decoration:none;display:block;box-shadow:0 0 0 rgba(94,234,212,0);
+  }
+  .run:hover{box-shadow:0 6px 24px rgba(94,234,212,.3);transform:translateY(-1px)}
+  .brow{display:flex;gap:8px}
+  .ghost{
+    flex:1;font-family:var(--mono);font-size:12px;cursor:pointer;text-align:center;text-decoration:none;
+    background:transparent;color:var(--dim);border:1px solid var(--line2);padding:10px;border-radius:9px;transition:.13s;
+  }
+  .ghost:hover{border-color:var(--phos);color:var(--phos)}
+  .copied{border-color:var(--phos)!important;color:var(--phos)!important}
+
+  .platform-links{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+  .platform-links h3{font-family:var(--mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--dimmer);margin-bottom:9px}
+  .plink{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    text-decoration:none;color:var(--ink);font-size:13px;padding:8px 10px;border-radius:8px;
+    border:1px solid transparent;transition:.13s}
+  .plink:hover{background:var(--panel2);border-color:var(--line2)}
+  .plink .pn{font-family:var(--mono);font-weight:500}
+  .plink .go{font-family:var(--mono);font-size:11px;color:var(--phos)}
+
+  /* ---------- footer / how-to ---------- */
+  .howto{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:50px}
+  .howto h2{font-family:var(--mono);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--phos);margin-bottom:12px}
+  .howto ol{margin-left:18px;color:var(--dim);font-size:13.5px}
+  .howto li{margin-bottom:7px}
+  .howto code{font-family:var(--mono);color:var(--amber);background:var(--bg2);padding:1px 6px;border-radius:5px;font-size:12px}
+  .howto b{color:var(--ink)}
+  footer{padding:24px 0 50px;border-top:1px solid var(--line);color:var(--dimmer);font-size:12px;font-family:var(--mono)}
+  footer b{color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="logo">⊹</div>
+      <div>
+        <h1>X-RAY <b>SOURCER</b></h1>
+        <div class="tag">Workday Talent · Boolean Profile Finder</div>
+      </div>
+    </div>
+    <p class="lede">
+      Builds precision <b>X-ray search strings</b> that surface real candidate <em>profiles</em> across LinkedIn, Xing, GitHub & more — via Google/Bing, no logins or scraping.
+      Pick a job, tune the boolean logic, and fire a live search. The <code>-job -hiring</code> exclusions strip out job ads so you only see people, not postings.
+    </p>
+    <div class="tabs" id="tabs"></div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: controls -->
+    <div class="card">
+      <h2><span class="num">01</span> Tune the search</h2>
+      <p class="sub" id="jobsub"></p>
+
+      <div class="lane must">
+        <div class="lane-h"><span class="lbl">MUST HAVE — joined by AND</span><span class="hint">all selected terms required → high precision</span></div>
+        <div class="chips" id="mustChips"></div>
+        <div class="addrow"><input id="mustInput" placeholder="add a required term…"><button onclick="addTerm('must')">+ add</button></div>
+      </div>
+
+      <div class="lane any">
+        <div class="lane-h"><span class="lbl">ANY OF — joined by OR</span><span class="hint">at least one matches → wider net</span></div>
+        <div class="chips" id="anyChips"></div>
+        <div class="addrow"><input id="anyInput" placeholder="add an optional skill…"><button onclick="addTerm('any')">+ add</button></div>
+      </div>
+
+      <div class="lane title">
+        <div class="lane-h"><span class="lbl">TITLES — joined by OR</span><span class="hint">matches current/past job titles</span></div>
+        <div class="chips" id="titleChips"></div>
+        <div class="addrow"><input id="titleInput" placeholder="add a target title…"><button onclick="addTerm('title')">+ add</button></div>
+      </div>
+
+      <div class="lane">
+        <div class="lane-h"><span class="lbl" style="color:var(--ink)">REGIONS</span><span class="hint">click a region to expand countries</span></div>
+        <div id="regions"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: output -->
+    <div class="out">
+      <div class="card">
+        <h2><span class="num">02</span> Live query &amp; launch</h2>
+
+        <div class="lane">
+          <div class="lane-h"><span class="lbl" style="color:var(--ink)">PLATFORMS</span></div>
+          <div class="pillrow" id="platforms"></div>
+        </div>
+
+        <div class="lane">
+          <div class="lane-h"><span class="lbl" style="color:var(--ink)">SEARCH ENGINE</span></div>
+          <div class="seg" id="engine">
+            <button data-e="google" class="on">Google</button>
+            <button data-e="bing">Bing</button>
+            <button data-e="ddg">DuckDuckGo</button>
+          </div>
+        </div>
+
+        <div class="query" id="query"></div>
+        <div class="meta">
+          <span>chars <b id="mChars">0</b></span>
+          <span>terms <b id="mTerms">0</b></span>
+          <span>geo <b id="mGeo">0</b></span>
+        </div>
+
+        <div class="btns">
+          <a class="run" id="runAll" target="_blank" rel="noopener">▸ RUN COMBINED SEARCH</a>
+          <div class="brow">
+            <a class="ghost" id="copyBtn" onclick="copyQ(event)">⧉ copy query</a>
+            <a class="ghost" id="copyLink" onclick="copyL(event)">⧉ copy url</a>
+          </div>
+        </div>
+
+        <div class="platform-links">
+          <h3>↳ run one platform at a time</h3>
+          <div id="plinks"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="howto">
+    <h2>How to read &amp; use this</h2>
+    <ol>
+      <li><b>MUST</b> terms are <code>AND</code>ed (every candidate must have all of them). <b>ANY</b> terms are wrapped in <code>(a OR b OR c)</code>. <b>TITLES</b> the same. Fewer MUST terms = more results but looser; more MUST = fewer but sharper.</li>
+      <li><b>Regions</b> add a location block like <code>("United Kingdom" OR Germany OR India…)</code>. X-ray reads the location printed on the profile, so toggling individual countries keeps results tight.</li>
+      <li>Each <b>platform</b> just swaps the <code>site:</code> operator. LinkedIn for everyone; Xing is strong for Germany/EMEA; GitHub & StackOverflow surface the hands-on data/ETL people in Job 1.</li>
+      <li>The auto-added <code>-jobs -hiring -apply</code> exclusions remove recruiter ads and job boards — that's the single biggest time-saver for accuracy.</li>
+      <li><b>RUN COMBINED</b> opens one tab across all selected platforms; the list below runs each platform separately when one engine over-mixes them.</li>
+    </ol>
+  </div>
+
+  <div class="howto" style="border-color:var(--phos-dim)">
+    <h2 style="color:var(--phos)">Publish to GitHub Pages (2 min)</h2>
+    <ol>
+      <li>Create a new repo on GitHub → upload this file as <code>index.html</code>.</li>
+      <li>Repo <b>Settings → Pages</b> → Source = <code>Deploy from a branch</code> → branch <code>main</code> / folder <code>/root</code> → Save.</li>
+      <li>Wait ~60s. Your tool is live at <code>https://&lt;your-username&gt;.github.io/&lt;repo-name&gt;/</code> — fully static, nothing else to configure.</li>
+    </ol>
+  </div>
+
+  <footer>
+    Profiles surfaced via public search engines · respects platform ToS · no scraping, no logins, no stored data. <br>
+    <b>Tip:</b> if a region returns noise, deselect broad regions and pick 3–5 target countries instead.
+  </footer>
+
+</div>
+
+<script>
+/* ============================================================
+   DATA MODEL
+   Each job seeds three boolean lanes + sensible defaults.
+   `on:true` = selected on load.  Everything is editable live.
+   ============================================================ */
+const JOBS = {
+  job1:{
+    n:"JOB 01", title:"Data Consultant (Workday HCM)",
+    geo:"EMEA · APAC · India",
+    sub:"Hands-on Workday data & migration specialists — GitHub/SO help here.",
+    regions:["EMEA","APAC","India"],
+    platforms:["linkedin","xing","github","stackoverflow"],
+    must:[{t:"Workday HCM",on:true},{t:"data migration",on:false}],
+    any:[{t:"ETL",on:true},{t:"data integration",on:true},{t:"SQL",on:true},
+         {t:"data migration",on:true},{t:"data reconciliation",on:false},
+         {t:"data validation",on:false},{t:"data quality",on:false},
+         {t:"data governance",on:false},{t:"HRIS",on:false},{t:"payroll data",on:false},{t:"GDPR",on:false}],
+    title:[{t:"Data Consultant",on:true},{t:"Workday Consultant",on:true},
+           {t:"Data Migration Consultant",on:true},{t:"HRIS Consultant",on:false},
+           {t:"Data Integration Consultant",on:false},{t:"Workday Data Lead",on:false}]
+  },
+  job2:{
+    n:"JOB 02", title:"Test Coordinator (Workday Transformation)",
+    geo:"EMEA · LATAM · APAC · India",
+    sub:"QA / test leads on HCM/ERP programmes — LinkedIn & Xing dominate.",
+    regions:["EMEA","LATAM","APAC","India"],
+    platforms:["linkedin","xing"],
+    must:[{t:"Workday",on:true}],
+    any:[{t:"UAT",on:true},{t:"SIT",on:true},{t:"regression testing",on:true},
+         {t:"test strategy",on:false},{t:"defect management",on:false},
+         {t:"JIRA",on:false},{t:"Azure DevOps",on:false},{t:"RTM",on:false},
+         {t:"performance testing",on:false},{t:"ISTQB",on:false},{t:"HCM",on:true}],
+    title:[{t:"Test Coordinator",on:true},{t:"Test Lead",on:true},{t:"QA Lead",on:true},
+           {t:"Test Manager",on:false},{t:"QA Manager",on:false},{t:"Workday Test Lead",on:false}]
+  },
+  job3:{
+    n:"JOB 03", title:"Senior Project Manager (Workday HCM Transformation)",
+    geo:"EMEA · LATAM · APAC",
+    sub:"Programme / transformation leaders — LinkedIn & Xing only.",
+    regions:["EMEA","LATAM","APAC"],
+    platforms:["linkedin","xing"],
+    must:[{t:"Workday",on:true}],
+    any:[{t:"HR transformation",on:true},{t:"programme delivery",on:true},
+         {t:"HCM",on:true},{t:"mergers and acquisitions",on:false},
+         {t:"RAID",on:false},{t:"PRINCE2",on:false},{t:"PMP",on:false},
+         {t:"MSP",on:false},{t:"separation",on:false},{t:"change management",on:false}],
+    title:[{t:"Senior Project Manager",on:true},{t:"Programme Manager",on:true},
+           {t:"Workday Programme Manager",on:true},{t:"HR Transformation Lead",on:true},
+           {t:"Program Manager",on:false},{t:"Delivery Lead",on:false}]
+  }
+};
+
+/* PLATFORM → site operator + clean public-search URL prefixes */
+const PLATFORMS = {
+  linkedin:{name:"LinkedIn", site:'(site:linkedin.com/in/ OR site:linkedin.com/pub/)'},
+  xing:{name:"Xing", site:'site:xing.com/profile/'},
+  github:{name:"GitHub", site:'site:github.com'},
+  stackoverflow:{name:"StackOverflow", site:'site:stackoverflow.com/users'},
+  twitter:{name:"X / Twitter", site:'(site:x.com OR site:twitter.com)'},
+  aboutme:{name:"About.me", site:'site:about.me'}
+};
+
+/* REGION → representative countries/hubs (X-ray reads profile location text) */
+const REGIONS = {
+  EMEA:["United Kingdom","Ireland","Germany","France","Netherlands","Spain","Italy","Portugal","Poland","Sweden","Belgium","Switzerland","Austria","Denmark","Norway","Finland","Romania","United Arab Emirates","Saudi Arabia","Qatar","Egypt","South Africa","Nigeria","Kenya","Israel","Turkey"],
+  APAC:["Singapore","Australia","New Zealand","Philippines","Malaysia","Indonesia","Japan","Hong Kong","Vietnam","Thailand","South Korea","China"],
+  LATAM:["Brazil","Mexico","Argentina","Colombia","Chile","Peru","Costa Rica","Uruguay"],
+  India:["India","Bengaluru","Hyderabad","Pune","Mumbai","Chennai","Delhi","Gurgaon","Noida"]
+};
+const ENGINES = {
+  google:q=>"https://www.google.com/search?q="+encodeURIComponent(q),
+  bing:q=>"https://www.bing.com/search?q="+encodeURIComponent(q),
+  ddg:q=>"https://duckduckgo.com/?q="+encodeURIComponent(q)
+};
+const EXCLUSIONS = ["-jobs","-hiring","-apply","-careers","-vacancy"];
+
+/* ---------- runtime state ---------- */
+let current = "job1";
+let platforms = {};       // {linkedin:true,...}
+let engine = "google";
+let geoState = {};        // {EMEA:{open:false, countries:{UK:true,...}}}
+
+/* ============================================================ */
+function init(){
+  // tabs
+  const tabsEl = document.getElementById("tabs");
+  tabsEl.innerHTML = Object.entries(JOBS).map(([k,j])=>`
+    <div class="tab ${k===current?'on':''}" data-job="${k}" onclick="selectJob('${k}')">
+      <div class="n">${j.n}</div><div class="t">${j.title}</div>
+      <div class="geo">${j.geo}</div>
+    </div>`).join("");
+  selectJob(current, true);
+  // engine seg
+  document.querySelectorAll("#engine button").forEach(b=>{
+    b.onclick=()=>{engine=b.dataset.e;document.querySelectorAll("#engine button").forEach(x=>x.classList.remove("on"));b.classList.add("on");render();};
+  });
+  // enter-to-add
+  ["must","any","title"].forEach(l=>{
+    document.getElementById(l+"Input").addEventListener("keydown",e=>{if(e.key==="Enter")addTerm(l);});
+  });
+}
+
+function selectJob(k){
+  current = k;
+  const j = JOBS[k];
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.job===k));
+  document.getElementById("jobsub").textContent = j.sub;
+  // platforms for this job
+  platforms = {};
+  Object.keys(PLATFORMS).forEach(p=>platforms[p]= j.platforms.includes(p));
+  // regions for this job
+  geoState = {};
+  j.regions.forEach((r,i)=>{
+    geoState[r] = {open:i===0, countries:{}};
+    REGIONS[r].forEach((c,ci)=>{ geoState[r].countries[c] = ci<6; }); // first 6 hubs on by default → tight
+  });
+  renderChips(); renderRegions(); renderPlatforms(); render();
+}
+
+/* ---------- chip lanes ---------- */
+function renderChips(){
+  ["must","any","title"].forEach(lane=>{
+    const arr = JOBS[current][lane];
+    document.getElementById(lane+"Chips").innerHTML = arr.map((c,i)=>`
+      <span class="chip ${c.on?'on':''}" onclick="toggleChip('${lane}',${i})">${esc(c.t)}<span class="x" onclick="event.stopPropagation();delChip('${lane}',${i})">×</span></span>`).join("");
+  });
+}
+function toggleChip(lane,i){JOBS[current][lane][i].on=!JOBS[current][lane][i].on;renderChips();render();}
+function delChip(lane,i){JOBS[current][lane].splice(i,1);renderChips();render();}
+function addTerm(lane){
+  const inp=document.getElementById(lane+"Input");const v=inp.value.trim();
+  if(!v)return;JOBS[current][lane].push({t:v,on:true});inp.value="";renderChips();render();
+}
+
+/* ---------- regions ---------- */
+function renderRegions(){
+  const el=document.getElementById("regions");
+  el.innerHTML=Object.keys(geoState).map(r=>{
+    const cs=geoState[r].countries;
+    const total=Object.keys(cs).length, sel=Object.values(cs).filter(Boolean).length;
+    const allOn=sel===total;
+    return `<div class="region-grp ${geoState[r].open?'open':''}">
+      <div class="region-head" onclick="toggleRegion('${r}')">
+        <span class="caret">▸</span><span class="nm">${r}</span>
+        <span class="ct">${sel}/${total}</span>
+        <span class="toggle-all" onclick="event.stopPropagation();allRegion('${r}',${!allOn})">${allOn?'clear':'all'}</span>
+      </div>
+      <div class="region-body"><div class="chips">
+        ${Object.keys(cs).map(c=>`<span class="chip ${cs[c]?'on':''}" onclick="toggleCountry('${r}','${esc(c)}')">${esc(c)}</span>`).join("")}
+      </div></div></div>`;
+  }).join("");
+}
+function toggleRegion(r){geoState[r].open=!geoState[r].open;renderRegions();}
+function toggleCountry(r,c){geoState[r].countries[c]=!geoState[r].countries[c];renderRegions();render();}
+function allRegion(r,v){Object.keys(geoState[r].countries).forEach(c=>geoState[r].countries[c]=v);renderRegions();render();}
+
+/* ---------- platforms ---------- */
+function renderPlatforms(){
+  document.getElementById("platforms").innerHTML=Object.entries(PLATFORMS).map(([k,p])=>`
+    <span class="pill ${platforms[k]?'on':''}" onclick="togglePlatform('${k}')"><span class="dot"></span>${p.name}</span>`).join("");
+}
+function togglePlatform(k){platforms[k]=!platforms[k];renderPlatforms();render();}
+
+/* ============================================================
+   QUERY BUILDER  — the actual X-ray logic
+   ============================================================ */
+function group(arr,op){
+  const t=arr.filter(c=>c.on).map(c=>quote(c.t));
+  if(!t.length)return "";
+  if(t.length===1)return t[0];
+  return "("+t.join(" "+op+" ")+")";
+}
+function quote(s){return /\s/.test(s)?`"${s}"`:s;} // phrase-quote multi-word terms
+function geoGroup(){
+  const picked=[];
+  Object.values(geoState).forEach(r=>Object.entries(r.countries).forEach(([c,on])=>{if(on)picked.push(quote(c));}));
+  if(!picked.length)return {str:"",count:0};
+  return {str:"("+picked.join(" OR ")+")", count:picked.length};
+}
+function siteOps(){
+  const ops=Object.keys(platforms).filter(p=>platforms[p]).map(p=>PLATFORMS[p].site);
+  if(!ops.length)return "";
+  if(ops.length===1)return ops[0];
+  // strip nested parens so we can OR them cleanly
+  const flat=ops.map(o=>o.replace(/^\(|\)$/g,""));
+  return "("+flat.join(" OR ")+")";
+}
+function buildQuery(siteOverride){
+  const j=JOBS[current];
+  const site = siteOverride!==undefined ? siteOverride : siteOps();
+  const must = j.must.filter(c=>c.on).map(c=>quote(c.t)).join(" ");
+  const any = group(j.any,"OR");
+  const titles = group(j.title,"OR");
+  const geo = geoGroup().str;
+  return [site,must,any,titles,geo,...EXCLUSIONS].filter(Boolean).join(" ").replace(/\s+/g," ").trim();
+}
+
+/* ---------- render output ---------- */
+function render(){
+  const q=buildQuery();
+  document.getElementById("query").innerHTML=highlight(q);
+  document.getElementById("runAll").href=ENGINES[engine](q);
+  // meta
+  const j=JOBS[current];
+  const terms=[...j.must,...j.any,...j.title].filter(c=>c.on).length;
+  document.getElementById("mChars").textContent=q.length;
+  document.getElementById("mTerms").textContent=terms;
+  document.getElementById("mGeo").textContent=geoGroup().count;
+  // per-platform links
+  const links=Object.keys(platforms).filter(p=>platforms[p]);
+  document.getElementById("plinks").innerHTML = links.length? links.map(p=>{
+    const pq=buildQuery(PLATFORMS[p].site);
+    return `<a class="plink" target="_blank" rel="noopener" href="${ENGINES[engine](pq)}">
+      <span class="pn">${PLATFORMS[p].name}</span><span class="go">run ▸</span></a>`;
+  }).join("") : `<div style="color:var(--dimmer);font-size:12.5px">select a platform above…</div>`;
+}
+function highlight(q){
+  return esc(q)
+    .replace(/(\bOR\b|\bAND\b)/g,'<span class="op">$1</span>')
+    .replace(/(site:[^\s)]+)/g,'<span class="ph">$1</span>')
+    .replace(/(-\w+)/g,'<span class="ex">$1</span>');
+}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+/* ---------- copy helpers ---------- */
+function copyQ(e){navigator.clipboard.writeText(buildQuery());flash(e.target,"copied ✓");}
+function copyL(e){navigator.clipboard.writeText(ENGINES[engine](buildQuery()));flash(e.target,"url copied ✓");}
+function flash(el,msg){const o=el.textContent;el.textContent=msg;el.classList.add("copied");setTimeout(()=>{el.textContent=o;el.classList.remove("copied");},1400);}
+
+init();
+</script>
+</body>
+</html>
